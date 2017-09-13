@@ -131,6 +131,68 @@ class ComputeClient(_base_client.BaseClient):
 
         return self._flatten_list_results(paged_result, 'items')
 
+    def get_regions(self, project_id):
+        """Get the regions for a project.
+
+        Args:
+            project_id (str): The project id.
+
+        Return:
+            list: A list of regions for this project.
+
+        Raise:
+            api_errors.ApiExecutionError: If API raises an error.
+        """
+        api = self.service.regions()
+        request = api.list(project=project_id)
+
+        paged_results = self._build_paged_result(
+            request, api, self.rate_limiter)
+
+        return self._flatten_list_results(paged_results, 'items')
+
+    def get_subnetworks(self, region, project_id):
+        """Get the subnetworks for a project.
+
+        Args:
+            region (str): The region.
+            project_id (str): The project id.
+
+        Return:
+            list: A list of subnetworks for this project.
+
+        Raise:
+            api_errors.ApiExecutionError: If API raises an error.
+        """
+        api = self.service.subnetworks()
+        request = api.list(project=project_id,
+                           region=region)
+
+        paged_results = self._build_paged_result(
+            request, api, self.rate_limiter)
+
+        return self._flatten_list_results(paged_results, 'items')
+
+    def get_networks(self, project_id):
+        """Get the networks for a project.
+
+        Args:
+            project_id (str): The project id.
+
+        Return:
+            list: A list of networks for this project.
+
+        Raise:
+            api_errors.ApiExecutionError: If API raises an error.
+        """
+        api = self.service.networks()
+        request = api.list(project=project_id)
+
+        paged_results = self._build_paged_result(
+            request, api, self.rate_limiter)
+
+        return self._flatten_list_results(paged_results, 'items')
+
     def get_instances(self, project_id):
         """Get the instances for a project.
 

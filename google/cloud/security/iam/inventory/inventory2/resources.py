@@ -192,6 +192,14 @@ class Project(Resource):
         return 'project'
 
 
+class Region(Resource):
+    def key(self):
+        return '{}-{}'.format(self['id'], self.parent().key())
+
+    def type(self):
+        return 'region'
+
+
 class GcsBucket(Resource):
     @cached('iam_policy')
     def getIamPolicy(self, client=None):
@@ -253,6 +261,22 @@ class Firewall(Resource):
 
     def type(self):
         return 'firewall'
+
+
+class Network(Resource):
+    def key(self):
+        return self['id']
+
+    def type(self):
+        return 'network'
+
+
+class SubNetwork(Resource):
+    def key(self):
+        return self['id']
+
+    def type(self):
+        return 'subnetwork'
 
 
 class InstanceGroup(Resource):
@@ -377,6 +401,15 @@ class BucketIterator(ResourceIterator):
                 yield FACTORIES['bucket'].create_new(data)
 
 
+class RegionIterator(ResourceIterator):
+    def iter(self):
+        gcp = self.client
+        if self.resource.enumerable():
+            for data in gcp.iter_computeregions(
+                    projectid=self.resource['projectNumber']):
+                yield FACTORIES['region'].create_new(data)
+
+
 class ObjectIterator(ResourceIterator):
     def iter(self):
         gcp = self.client
@@ -400,6 +433,24 @@ class InstanceIterator(ResourceIterator):
             for data in gcp.iter_computeinstances(
                     projectid=self.resource['projectId']):
                 yield FACTORIES['instance'].create_new(data)
+
+
+class NetworkIterator(ResourceIterator):
+    def iter(self):
+        gcp = self.client
+        if self.resource.enumerable():
+            for data in gcp.iter_computenetworks(
+                    projectid=self.resource['projectId']):
+                yield FACTORIES['network'].create_new(data)
+
+
+class SubNetworkIterator(ResourceIterator):
+    def iter(self):
+        gcp = self.client
+        for data in gcp.iter_computesubnetworks(
+                projectid=self.resource.parent()['projectId'],
+                region=self.resource['name']):
+            yield FACTORIES['subnetwork'].create_new(data)
 
 
 class FirewallIterator(ResourceIterator):
@@ -531,7 +582,16 @@ FACTORIES = {
             BackendServiceIterator,
             CloudSqlIterator,
             ServiceAccountIterator,
-            ProjectRoleIterator
+            ProjectRoleIterator,
+            NetworkIterator,
+            RegionIterator,
+            ]}),
+
+    'region': ResourceFactory({
+        'dependsOn': ['project'],
+        'cls': Region,
+        'contains': [
+            SubNetworkIterator,
             ]}),
 
     'bucket': ResourceFactory({
@@ -556,6 +616,18 @@ FACTORIES = {
     'instance': ResourceFactory({
         'dependsOn': ['project'],
         'cls': Instance,
+        'contains': [
+            ]}),
+
+    'network': ResourceFactory({
+        'dependsOn': ['project'],
+        'cls': Network,
+        'contains': [
+            ]}),
+
+    'subnetwork': ResourceFactory({
+        'dependsOn': ['project'],
+        'cls': SubNetwork,
         'contains': [
             ]}),
 

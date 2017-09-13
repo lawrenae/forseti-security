@@ -268,7 +268,7 @@ class InventoryImporter(object):
         self._membership_cache = []
         self.member_cache = {}
         self.member_cache_policies = {}
-
+        self.region_cache = {}
 
     def run(self):
         """Runs the import.
@@ -290,7 +290,10 @@ class InventoryImporter(object):
             'instance',
             'firewall',
             'backendservice',
-            'cloudsqlinstance'
+            'cloudsqlinstance',
+            'network',
+            'region',
+            'subnetwork',
             ]
 
         gsuite_type_list = [
@@ -562,6 +565,15 @@ class InventoryImporter(object):
             'cloudsqlinstance': (None,
                                  self._convert_cloudsqlinstance,
                                  None),
+            'region': (None,
+                       self._convert_region,
+                       None),
+            'network': (None,
+                        self._convert_network,
+                        None),
+            'subnetwork': (None,
+                           self._convert_subnetwork,
+                           None),
             None: (None, None, None),
             }
 
@@ -668,6 +680,77 @@ class InventoryImporter(object):
                 email=data.get('email', ''),
                 parent=parent))
 
+    def _convert_region_pre(self):
+        """Executed before regions are inserted."""
+
+        self.region_cache = {}
+
+    def _convert_region_post(self):
+        """Executed after regions are inserted."""
+
+        self.session.add_all(self.region_cache.values())
+
+    def _convert_region(self, region):
+        """Convert a region to a database object.
+
+        Args:
+            region (object): Region to store.
+        """
+        data = region.get_data()
+        parent, full_res_name, type_name = self._full_resource_name(
+            region)
+
+        # FIXME: This is okay for a PoC type quality but not a long term
+        # solution. This must not be productionized.
+        type_name = '{}-{}'.format(type_name, parent.name)
+
+        resource = self.dao.TBL_RESOURCE(
+            full_name=full_res_name,
+            type_name=type_name,
+            name=region.get_key(),
+            type=region.get_type(),
+            display_name=data.get('name', ''),
+            parent=parent)
+        self.region_cache[type_name] = None
+        self.session.add(resource)
+        self._add_to_cache(region, resource)
+
+    def _convert_network(self, network):
+        """Convert a network to a database object.
+
+        Args:
+            network (object): Network to store.
+        """
+        data = network.get_data()
+        parent, full_res_name, type_name = self._full_resource_name(
+            network)
+        self.session.add(
+            self.dao.TBL_RESOURCE(
+                full_name=full_res_name,
+                type_name=type_name,
+                name=network.get_key(),
+                type=network.get_type(),
+                display_name=data.get('name', ''),
+                parent=parent))
+
+    def _convert_subnetwork(self, subnetwork):
+        """Convert a subnetwork to a database object.
+
+        Args:
+            subnetwork (object): Subnetwork to store.
+        """
+        data = subnetwork.get_data()
+        parent, full_res_name, type_name = self._full_resource_name(
+            subnetwork)
+        self.session.add(
+            self.dao.TBL_RESOURCE(
+                full_name=full_res_name,
+                type_name=type_name,
+                name=subnetwork.get_key(),
+                type=subnetwork.get_type(),
+                display_name=data.get('name', ''),
+                parent=parent))
+
     def _convert_firewall(self, firewall):
         """Convert a firewall to a database object.
 
@@ -683,8 +766,7 @@ class InventoryImporter(object):
                 type_name=type_name,
                 name=firewall.get_key(),
                 type=firewall.get_type(),
-                display_name=data.get('displayName', ''),
-                email=data.get('email', ''),
+                display_name=data.get('name', ''),
                 parent=parent))
 
     def _convert_backendservice(self, backendservice):

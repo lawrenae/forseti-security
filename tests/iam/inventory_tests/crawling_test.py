@@ -81,7 +81,7 @@ class CrawlerTest(ForsetiTestCase):
                              'No errors should have occurred')
 
         types = set([item.type() for item in storage.mem.values()])
-        self.assertEqual(len(types), 16, """"The inventory crawl 16 types of
+        self.assertEqual(len(types), 19, """"The inventory crawl 19 types of
         resources in a well populated organization, howevever, there is: """
         +str(len(types)))
 

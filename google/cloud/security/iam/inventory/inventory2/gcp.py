@@ -236,6 +236,36 @@ class ApiClientImpl(ApiClient):
         for rule in result:
             yield rule
 
+    def iter_computeregions(self, projectid):
+        """Compute Engine Regions Iterator from gcp API call
+
+        Yields:
+            dict: Generator of Compute Engine Regions
+        """
+        result = self.compute.get_regions(projectid)
+        for rule in result:
+            yield rule
+
+    def iter_computenetworks(self, projectid):
+        """Compute Engine Network Iterator from gcp API call
+
+        Yields:
+            dict: Generator of Compute Engine Networks
+        """
+        result = self.compute.get_networks(projectid)
+        for rule in result:
+            yield rule
+
+    def iter_computesubnetworks(self, region, projectid):
+        """Compute Engine Subnetwork Iterator from gcp API call
+
+        Yields:
+            dict: Generator of Compute Engine Networks
+        """
+        result = self.compute.get_subnetworks(region, projectid)
+        for rule in result:
+            yield rule
+
     def iter_computeinstancegroups(self, projectid):
         """Compute Engine group Iterator from gcp API call
 

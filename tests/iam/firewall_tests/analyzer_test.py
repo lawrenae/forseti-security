@@ -15,7 +15,7 @@
 """Unit Tests for Firewall Analysis."""
 
 from tests.unittest_utils import ForsetiTestCase
-from google.cloud.security.iam.firewall.firewall import Space, \
+from google.cloud.security.iam.firewall.analyzer import Space, \
     PortRange, ip_range, SpaceSet, ProtocolRange
 
 

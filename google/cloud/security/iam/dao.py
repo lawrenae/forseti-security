@@ -349,6 +349,13 @@ def define_model(model_name, dbengine, model_seed):
             Resource.__table__.drop(engine)
 
         @classmethod
+        def get_firewall_rules(cls, session, ipaddress):
+            """Get the firewall rules in order of application."""
+
+            yield
+            return
+
+        @classmethod
         def denorm_group_in_group(cls, session):
             """Denormalize group-in-group relation.
 
