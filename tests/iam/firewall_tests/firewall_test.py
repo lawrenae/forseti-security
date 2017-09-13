@@ -16,13 +16,13 @@
 
 from tests.unittest_utils import ForsetiTestCase
 from google.cloud.security.iam.firewall.firewall import Space, \
-    PortRange
+    PortRange, ip_range, SpaceSet, ProtocolRange
 
 
 class FirewallTest(ForsetiTestCase):
     """Test based on declarative model."""
 
-    def test_space_intersect_dim1(self):
+    def test_space_intersect_port_dim1(self):
         """Test space intersection in one dimension."""
 
         self.assertTrue(
@@ -52,3 +52,195 @@ class FirewallTest(ForsetiTestCase):
         self.assertFalse(
             Space(PortRange(0, 2))
             .intersect(Space(PortRange(2, 3))))
+
+    def test_space_intersect_ipaddress_dim1(self):
+        """Test space intersection in one dimension."""
+
+        self.assertTrue(
+            Space(ip_range(u'10.0.0.0/8'))
+            .intersect(Space(ip_range(u'10.0.0.1/32'))))
+
+        self.assertTrue(
+            Space(ip_range(u'127.0.0.0/8'))
+            .intersect(Space(ip_range(u'127.0.0.0/8'))))
+
+        self.assertTrue(
+            Space(ip_range(u'10.0.0.0/8'))
+            .intersect(Space(ip_range(u'10.0.0.1/32'))))
+
+        self.assertTrue(
+            Space(ip_range(u'10.0.0.0/8'))
+            .intersect(Space(ip_range(u'10.1.0.0/16'))))
+
+        self.assertFalse(
+            Space(ip_range(u'10.0.0.0/32'))
+            .intersect(Space(ip_range(u'10.0.0.1/32'))))
+
+        self.assertFalse(
+            Space(ip_range(u'0.0.0.0/8'))
+            .intersect(Space(ip_range(u'1.0.0.0/8'))))
+
+        self.assertFalse(
+            Space(ip_range(u'127.0.0.0/8'))
+            .intersect(Space(ip_range(u'128.0.0.0/8'))))
+
+        self.assertFalse(
+            Space(ip_range(u'10.0.0.0/8'))
+            .intersect(Space(ip_range(u'192.168.0.0/24'))))
+
+    def test_space_equal_dimX(self):
+        """Test equal methods in one, two and three dimensions."""
+
+        self.assertEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32')),
+                Space(ip_range(u'192.168.24.0/24'))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24')),
+                Space(ip_range(u'127.0.0.1/32'))))
+
+        self.assertEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16)),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1)),
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16))))
+
+        self.assertEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP']))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP'])),
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP']))))
+
+        self.assertNotEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP']))),
+            SpaceSet(
+                Space(ip_range(u'192.168.25.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP'])),
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP']))))
+
+        self.assertNotEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP']))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP'])),
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**15),
+                      ProtocolRange(['UDP']))))
+
+        self.assertNotEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP']))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP'])),
+                Space(ip_range(u'127.0.0.2/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP']))))
+
+        self.assertNotEqual(
+            SpaceSet(
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])),
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP']))),
+            SpaceSet(
+                Space(ip_range(u'192.168.24.0/24'),
+                      PortRange(0, 1),
+                      ProtocolRange(['TCP', 'ICMP'])),
+                Space(ip_range(u'127.0.0.1/32'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP', 'TCP']))))
+
+    def test_space_difference(self):
+        """Test difference method in multiple dimensions."""
+
+        s = SpaceSet(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP'])))
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP'])))
+        self.assertTrue(s.empty())
+
+        s = SpaceSet(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP', 'UDP', 'ICMP'])))
+        self.assertFalse(s.empty())
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['ICMP'])))
+        self.assertFalse(s.empty())
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['UDP'])))
+        self.assertFalse(s.empty())
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP'])))
+        self.assertTrue(s.empty())
+
+        s = SpaceSet(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP'])))
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(1, 2**16),
+                      ProtocolRange(['TCP'])))
+        self.assertFalse(s.empty())
+
+        s = SpaceSet(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(0, 2**16),
+                      ProtocolRange(['TCP', 'UDP', 'ICMP'])))
+        s = s.difference(
+                Space(ip_range(u'127.0.0.0/8'),
+                      PortRange(1, 2**16),
+                      ProtocolRange(['TCP'])))
+        self.assertFalse(s.empty())

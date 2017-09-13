@@ -17,8 +17,9 @@
 
 import ipaddress
 import itertools
+import collections
 
-DEBUG = True
+DEBUG = False
 
 
 def assert_compatible(f):
@@ -32,6 +33,22 @@ def assert_compatible(f):
             raise TypeError('Incompatible objects: {}, {}'.format(
                 s, o))
         return f(*args, **kwargs)
+
+    return wrapper
+
+
+def dbg_instrument(f):
+    """Instrument calls."""
+
+    def wrapper(*args, **kwargs):
+        """Print call arguments and return value."""
+        result = f(*args, **kwargs)
+        print '{}({},{}) -> {}'.format(
+            f.__name__,
+            args,
+            kwargs,
+            result)
+        return result
 
     return wrapper
 
@@ -77,6 +94,24 @@ class Range(object):
     def difference(self, other):
         raise NotImplementedError()
 
+    def __eq__(self, other):
+        raise NotImplementedError()
+
+    def __lt__(self, other):
+        raise NotImplementedError()
+
+    def __le__(self, other):
+        raise NotImplementedError()
+
+    def __ge__(self, other):
+        raise NotImplementedError()
+
+    def __gt__(self, other):
+        raise NotImplementedError()
+
+    def __ne__(self, other):
+        raise NotImplementedError()
+
 
 class NominalRange(Range):
     def __init__(self, range_type, values):
@@ -111,6 +146,35 @@ class NominalRange(Range):
 
     def __repr__(self):
         return ','.join(self.values)
+
+    @assert_compatible
+    def __eq__(self, other):
+        return self.values == other.values
+
+    def _compare(self, other, comparison):
+        values1 = sorted(self.values)
+        values2 = sorted(other.values)
+
+        for v1, v2 in zip(values1, values2):
+            if v1 == v2:
+                continue
+            else:
+                return comparison(v1, v2)
+
+    def __lt__(self, other):
+        return self._compare(other, lambda s, o: s < o)
+
+    def __le__(self, other):
+        return self._compare(other, lambda s, o: s <= o)
+
+    def __ge__(self, other):
+        return self._compare(other, lambda s, o: s >= o)
+
+    def __gt__(self, other):
+        return self._compare(other, lambda s, o: s > o)
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class NumericRange(Range):
@@ -160,6 +224,31 @@ class NumericRange(Range):
 
     def __repr__(self):
         return '{}-{}'.format(self.start, self.end)
+
+    @assert_compatible
+    def __eq__(self, other):
+        return self.start == other.start and self.end == other.end
+
+    def _compare(self, other, comparison):
+        if self.start == other.start:
+            return comparison(self.end, other.end)
+        else:
+            return comparison(self.start, other.start)
+
+    def __lt__(self, other):
+        return self._compare(other, lambda s, o: s < o)
+
+    def __le__(self, other):
+        return self._compare(other, lambda s, o: s <= o)
+
+    def __ge__(self, other):
+        return self._compare(other, lambda s, o: s >= o)
+
+    def __gt__(self, other):
+        return self._compare(other, lambda s, o: s > o)
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class PortRange(NumericRange):
@@ -219,23 +308,34 @@ class Space(object):
         if not self.intersect(other):
             return Space(self.ranges)
 
-        ranges = []
-        for dim_self, dim_other in zip(self.ranges, other.ranges):
-            ranges.append(dim_self.difference(dim_other))
-
         def instanceofany(obj, *types):
             for t in types:
                 if isinstance(obj, t):
                     return True
             return False
 
-        ranges = ([[r]
-                   if not instanceofany(r, list, set, tuple)
-                   else r for r in ranges])
+        ranges = collections.defaultdict(set)
+        for dim_self, dim_other, index in zip(self.ranges,
+                                              other.ranges,
+                                              xrange(len(self.ranges))):
+            diff_ranges = dim_self.difference(dim_other)
+
+            def appendIfEmpty(diff_range):
+                if not diff_range.empty():
+                    ranges[index].add(diff_range)
+
+            if instanceofany(diff_ranges, list, set, tuple):
+                map(appendIfEmpty, diff_ranges)
+            else:
+                appendIfEmpty(diff_ranges)
 
         spaces = []
-        for ranges in itertools.product(*ranges):
-            spaces.append(Space(*ranges))
+        for index, rs in ranges.iteritems():
+            for r in rs:
+                new_ranges = list(self.ranges)
+                new_ranges[index] = r
+                spaces.append(Space(*new_ranges))
+
         return spaces
 
     @assert_compatible
@@ -253,15 +353,45 @@ class Space(object):
     def __repr__(self):
         return '({})'.format(';'.join([repr(r) for r in self.ranges]))
 
+    def __eq__(self, other):
+        for rs, ro in zip(self.ranges, other.ranges):
+            if not rs == ro:
+                return False
+        return True
+
+    def _compare(self, other, comparison):
+        for r1, r2 in zip(self.ranges, other.ranges):
+            if r1 == r2:
+                continue
+            else:
+                return comparison(r1, r2)
+
+    def __lt__(self, other):
+        return self._compare(other, lambda s, o: s < o)
+
+    def __le__(self, other):
+        return self._compare(other, lambda s, o: s <= o)
+
+    def __ge__(self, other):
+        return self._compare(other, lambda s, o: s >= o)
+
+    def __gt__(self, other):
+        return self._compare(other, lambda s, o: s > o)
+
+    def __ne__(self, other):
+        return not self == other
+
 
 class SpaceSet(object):
     def __init__(self, *spaces):
-        self.spaces = spaces
+        self.spaces = sorted(spaces)
 
     @instrument
     def difference(self, other):
         spaces = [s.difference(other) for s in self.spaces]
-        return SpaceSet(*self._flatten(spaces))
+        spaces = self._flatten(spaces)
+        spaces = filter(lambda s: not s.empty(), spaces)
+        return SpaceSet(*spaces)
 
     @instrument
     def intersect(self, other):
@@ -273,6 +403,38 @@ class SpaceSet(object):
 
     def __repr__(self):
         return '\n'.join([repr(s) for s in self.spaces])
+
+    def __eq__(self, other):
+        for ss, so in zip(self.spaces, other.spaces):
+            if not ss == so:
+                return False
+        return True
+
+    def _compare(self, other, comparison):
+        for s1, s2 in zip(self.spaces, other.spaces):
+            if s1 == s2:
+                continue
+            else:
+                return comparison(s1, s2)
+
+    def __lt__(self, other):
+        return self._compare(other, lambda s, o: s < o)
+
+    def __le__(self, other):
+        return self._compare(other, lambda s, o: s <= o)
+
+    def __ge__(self, other):
+        return self._compare(other, lambda s, o: s >= o)
+
+    def __gt__(self, other):
+        return self._compare(other, lambda s, o: s > o)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def empty(self):
+        return not self.spaces or all(
+            map(lambda s: s.empty(), self.spaces))
 
 
 if __name__ == '__main__':
