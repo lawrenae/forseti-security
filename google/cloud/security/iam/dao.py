@@ -20,6 +20,7 @@ import datetime
 import os
 import binascii
 import collections
+import json
 import struct
 import hmac
 from threading import Lock
@@ -198,6 +199,7 @@ def define_model(model_name, dbengine, model_seed):
         policy_update_counter = Column(Integer, default=0)
         display_name = Column(String(256), default='')
         email = Column(String(256), default='')
+        other = Column(Text())
 
         parent_type_name = Column(
             String(128),
@@ -220,6 +222,11 @@ def define_model(model_name, dbengine, model_seed):
             """String representation."""
             return "<Resource(full_name='{}', name='{}' type='{}')>".format(
                 self.full_name, self.name, self.type)
+
+        def get_other(self):
+            """Return parsed structure."""
+
+            return json.loads(self.other)
 
     Resource.children = relationship(
         "Resource", order_by=Resource.full_name, back_populates="parent")
@@ -349,11 +356,32 @@ def define_model(model_name, dbengine, model_seed):
             Resource.__table__.drop(engine)
 
         @classmethod
-        def get_firewall_rules(cls, session, ipaddress):
+        def get_firewall_rules(cls, session, ipaddress, ingress=True):
             """Get the firewall rules in order of application."""
 
-            yield
-            return
+            def expand_rule(rule):
+                try:
+                    for source_range in rule['sourceRanges']:
+                        for allowed in rule['allowed']:
+                            if 'ports' in allowed:
+                                ports = allowed['ports']
+                            else:
+                                ports = None
+                            yield (source_range,
+                                   allowed['IPProtocol'],
+                                   ports)
+                except KeyError as e:
+                    pass
+
+            query = session.query(Resource).filter(Resource.type == 'firewall')
+            for rule in query.yield_per(PER_YIELD):
+                data = rule.get_other()
+                if data['direction'] == 'INGRESS' and ingress:
+                    for expanded in expand_rule(data):
+                        yield expanded
+                elif data['direction'] == 'EGRESS' and not ingress:
+                    for expanded in expand_rule(data):
+                        yield expanded
 
         @classmethod
         def denorm_group_in_group(cls, session):

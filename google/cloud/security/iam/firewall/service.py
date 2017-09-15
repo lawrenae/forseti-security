@@ -55,17 +55,17 @@ class GrpcFirewall(firewall_pb2_grpc.FirewallServicer):
         """Determines access to an ip address."""
 
         handle = self._get_handle(context)
-        for domain in self.firewall.AccessByAddressIngress(handle,
-                                                           request.ipaddress):
-            yield domain
+        for rule in self.firewall.AccessByAddressIngress(handle,
+                                                         request.ipaddress):
+            yield rule
 
     def AccessByAddressEgress(self, request, context):
         """Determines access from an ip address."""
 
         handle = self._get_handle(context)
-        for domain in self.firewall.AccessByAddressEgress(handle,
-                                                          request.ipaddress):
-            yield domain
+        for rule in self.firewall.AccessByAddressEgress(handle,
+                                                        request.ipaddress):
+            yield rule
 
 
 class GrpcFirewallFactory(object):

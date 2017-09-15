@@ -203,6 +203,35 @@ def define_inventory_parser(parent):
         help='Inventory id to get')
 
 
+def define_firewall_parser(parent):
+    """Define the firewall service parser.
+
+    Args:
+        parent (argparser): Parent parser to hook into.
+    """
+
+    service_parser = parent.add_parser('firewall', help='firewall service')
+    action_subparser = service_parser.add_subparsers(
+        title='action',
+        dest='action')
+
+    egress_firewall_parser = action_subparser.add_parser(
+        'egress',
+        help='Analyze egress rules')
+    egress_firewall_parser.add_argument(
+        'ipaddress',
+        type=str,
+        help='IP address to analyze')
+
+    ingress_firewall_parser = action_subparser.add_parser(
+        'ingress',
+        help='Analyze ingress rules')
+    ingress_firewall_parser.add_argument(
+        'ipaddress',
+        type=str,
+        help='IP address to analyze')
+
+
 def define_explainer_parser(parent):
     """Define the explainer service parser.
 
@@ -420,6 +449,7 @@ def create_parser(parser_cls):
     define_explainer_parser(service_subparsers)
     define_playground_parser(service_subparsers)
     define_inventory_parser(service_subparsers)
+    define_firewall_parser(service_subparsers)
     return main_parser
 
 
@@ -688,6 +718,34 @@ def run_playground(client, config, output):
     actions[config.action]()
 
 
+def run_firewall(client, config, output):
+    """Run firewall commands.
+        Args:
+            client (iam_client.ClientComposition): client to use for requests.
+            config (object): argparser namespace to use.
+            output (Output): output writer to use.
+    """
+
+    client = client.firewall
+
+    def do_access_ingress():
+        """Enumerate ingress access"""
+        for item in client.access_ingress(config.ipaddress):
+            output.write(item)
+
+    def do_access_egress():
+        """Enumerate egress access"""
+        for item in client.access_egress(config.ipaddress):
+            output.write(item)
+
+    actions = {
+        'ingress': do_access_ingress,
+        'egress': do_access_egress,
+        }
+
+    actions[config.action]()
+
+
 OUTPUTS = {
     'text': TextOutput,
     'json': JsonOutput,
@@ -697,6 +755,7 @@ SERVICES = {
     'explainer': run_explainer,
     'playground': run_playground,
     'inventory': run_inventory,
+    'firewall': run_firewall,
     }
 
 

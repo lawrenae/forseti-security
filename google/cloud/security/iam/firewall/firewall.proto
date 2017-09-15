@@ -19,7 +19,10 @@ package firewall;
 service Firewall {
   rpc Ping(PingRequest) returns (PingReply) {}
 
-  rpc AccessByAddress(AccessByAddressRequest) returns (stream EndpointDomain) {}
+  rpc AccessByAddressIngress(AccessByAddressRequest) returns (stream EndpointDomain) {}
+
+  rpc AccessByAddressEgress(AccessByAddressRequest) returns (stream EndpointDomain) {}
+
 }
 
 message PingRequest {
@@ -42,11 +45,11 @@ message EndpointDomain {
 
 message IpRange {
 	string range = 1;
-	int32 start = 2;
-	int32 end_exclusive = 3;
+	uint64 start = 2;
+	uint64 end_exclusive = 3;
 }
 
 message PortRange {
-	int32 start = 1;
-	int32 end_exclusive = 2;
+	uint32 start = 1;
+	uint32 end_exclusive = 2;
 }

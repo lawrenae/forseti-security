@@ -680,16 +680,6 @@ class InventoryImporter(object):
                 email=data.get('email', ''),
                 parent=parent))
 
-    def _convert_region_pre(self):
-        """Executed before regions are inserted."""
-
-        self.region_cache = {}
-
-    def _convert_region_post(self):
-        """Executed after regions are inserted."""
-
-        self.session.add_all(self.region_cache.values())
-
     def _convert_region(self, region):
         """Convert a region to a database object.
 
@@ -697,8 +687,7 @@ class InventoryImporter(object):
             region (object): Region to store.
         """
         data = region.get_data()
-        parent, full_res_name, type_name = self._full_resource_name(
-            region)
+        parent, full_res_name, type_name = self._full_resource_name(region)
 
         # FIXME: This is okay for a PoC type quality but not a long term
         # solution. This must not be productionized.
@@ -711,7 +700,6 @@ class InventoryImporter(object):
             type=region.get_type(),
             display_name=data.get('name', ''),
             parent=parent)
-        self.region_cache[type_name] = None
         self.session.add(resource)
         self._add_to_cache(region, resource)
 
@@ -767,7 +755,8 @@ class InventoryImporter(object):
                 name=firewall.get_key(),
                 type=firewall.get_type(),
                 display_name=data.get('name', ''),
-                parent=parent))
+                parent=parent,
+                other=json.dumps(data)))
 
     def _convert_backendservice(self, backendservice):
         """Convert a backendservice to a database object.

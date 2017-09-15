@@ -24,6 +24,8 @@ from google.cloud.security.iam.playground import playground_pb2_grpc
 from google.cloud.security.iam.playground import playground_pb2
 from google.cloud.security.iam.inventory import inventory_pb2
 from google.cloud.security.iam.inventory import inventory_pb2_grpc
+from google.cloud.security.iam.firewall import firewall_pb2
+from google.cloud.security.iam.firewall import firewall_pb2_grpc
 
 from google.cloud.security.iam.utils import oneof
 
@@ -113,6 +115,41 @@ class InventoryClient(IAMClient):
         return self.stub.List(request)
 
 
+class FirewallClient(IAMClient):
+    """Firewall analyzer service allows the client to create GCP inventory.
+
+    Firewall analyzer provides the following functionality:
+       - Create a new inventory and optionally import it
+       - Manage your inventory using List/Get/Delete
+    """
+
+    def __init__(self, config):
+        super(FirewallClient, self).__init__(config)
+        self.stub = firewall_pb2_grpc.FirewallStub(config['channel'])
+
+    def is_available(self):
+        """Checks if the 'Inventory' service is available by performing a ping.
+        """
+
+        data = binascii.hexlify(os.urandom(16))
+        echo = self.stub.Ping(firewall_pb2.PingRequest(data=data)).data
+        return echo == data
+
+    def access_ingress(self, ipaddress):
+        """Enumerates ingress access."""
+
+        request = firewall_pb2.AccessByAddressRequest(ipaddress=ipaddress)
+        return self.stub.AccessByAddressIngress(request,
+                                                metadata=self.metadata())
+
+    def access_egress(self, ipaddress):
+        """Enumerates egress access."""
+
+        request = firewall_pb2.AccessByAddressRequest(ipaddress=ipaddress)
+        return self.stub.AccessByAddressEgress(request,
+                                               metadata=self.metadata())
+
+
 class ExplainClient(IAMClient):
     """Explain service allows the client to reason about a model.
 
@@ -127,7 +164,8 @@ class ExplainClient(IAMClient):
         self.stub = explain_pb2_grpc.ExplainStub(config['channel'])
 
     def is_available(self):
-        """Checks if the 'Explain' service is available by performing a ping."""
+        """Checks if the 'Explain' service is available by performing a ping.
+        """
 
         data = binascii.hexlify(os.urandom(16))
         return self.stub.Ping(explain_pb2.PingRequest(data=data)).data == data
@@ -429,8 +467,14 @@ class ClientComposition(object):
         self.explain = ExplainClient(self.config)
         self.playground = PlaygroundClient(self.config)
         self.inventory = InventoryClient(self.config)
+        self.firewall = FirewallClient(self.config)
 
-        self.clients = [self.explain, self.playground, self.inventory]
+        self.clients = [
+            self.explain,
+            self.playground,
+            self.inventory,
+            self.firewall]
+
         if not all([c.is_available() for c in self.clients]):
             raise Exception('gRPC connected but services not registered')
 
