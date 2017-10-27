@@ -26,6 +26,7 @@ from google.cloud.security.iam.dao import ModelManager, create_engine
 from google.cloud.security.iam.explain.service import GrpcExplainerFactory
 from google.cloud.security.iam.playground.service import GrpcPlaygrounderFactory
 from google.cloud.security.iam.inventory.service import GrpcInventoryFactory
+from google.cloud.security.iam.scanner.service import GrpcScannerFactory
 from google.cloud.security.iam.inventory.storage import Storage
 
 
@@ -37,6 +38,7 @@ STATIC_SERVICE_MAPPING = {
     'explain': GrpcExplainerFactory,
     'playground': GrpcPlaygrounderFactory,
     'inventory': GrpcInventoryFactory,
+    'scanner': GrpcScannerFactory,
 }
 
 
