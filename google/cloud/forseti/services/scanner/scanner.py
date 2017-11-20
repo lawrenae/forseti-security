@@ -33,7 +33,7 @@ class Scanner(object):
         scoped_session, data_access = model_manager.get(model_name)
         with scoped_session as session:
             num_resources = 0
-            for _ in data_access.scanner_iter(session,
+            for _ in data_access.scanner_iter_resources(session,
                                               "project"):
                 num_resources += 1
             return num_resources

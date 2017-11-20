@@ -486,7 +486,7 @@ def define_model(model_name, dbengine, model_seed):
                 return bindings, member_graph, resource_type_names
 
         @classmethod
-        def scanner_iter(cls, session, resource_type):
+        def scanner_iter_resources(cls, session, resource_type):
             """Iterate over all resources with the specified type."""
 
             qry = (
@@ -495,6 +495,19 @@ def define_model(model_name, dbengine, model_seed):
 
             for resource in qry.yield_per(PER_YIELD):
                 yield resource
+
+        @classmethod
+        def scanner_iter_members(cls, session, member_type=None):
+            """Iterate over all members with the specified type."""
+
+            qry = (
+                session.query(Member)
+                )
+
+            if member_type is not None:
+                qry = qry.filter(Member.type == member_type)
+
+            return iter(qry.yield_per(PER_YIELD))
 
         @classmethod
         def explain_denied(cls, session, member_name, resource_type_names,
