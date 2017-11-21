@@ -21,17 +21,23 @@ from google.cloud.forseti.services.playground.service import GrpcPlaygrounderFac
 from google.cloud.forseti.services.inventory.service import GrpcInventoryFactory
 from google.cloud.forseti.services.model.service import GrpcModellerFactory
 from google.cloud.forseti.services.dao import ModelManager
+from google.cloud.forseti.services.trace import GrpcWrapper
 
 from tests.iam.api_tests.api_tester import ModelTestRunner
 from tests.iam.utils.db import create_test_engine
 from tests.unittest_utils import ForsetiTestCase
+from tests.iam.utils.mock import MockServerConfig
 
 
-class TestServiceConfig(object):
+class TestServiceConfig(MockServerConfig):
     """ServiceConfig stub."""
     def __init__(self):
         self.engine = create_test_engine()
         self.model_manager = ModelManager(self.engine)
+
+    def get_grpc_wrapper(self):
+        """Stub."""
+        return GrpcWrapper
 
     def run_in_background(self, function):
         """Stub."""

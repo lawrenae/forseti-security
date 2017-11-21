@@ -197,35 +197,8 @@ class GrpcPlaygrounderFactory(object):
         service = GrpcPlaygrounder(
             playgrounder_api=playgrounder.Playgrounder(
                 self.config))
+        wrapper = self.config.get_grpc_wrapper()
+        if wrapper is not None:
+            service = wrapper(service)
         playground_pb2_grpc.add_PlaygroundServicer_to_server(service, server)
         return service
-
-
-def serve(endpoint, config, max_workers=10, wait_shutdown_secs=3):
-    """Test function to serve playground service as standalone."""
-
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers))
-    GrpcPlaygrounderFactory(config).create_and_register_service(server)
-    server.add_insecure_port(endpoint)
-    server.start()
-    while True:
-        try:
-            time.sleep(1)
-            print "Looping\n"
-        except KeyboardInterrupt:
-            server.stop(wait_shutdown_secs).wait()
-            return
-
-
-if __name__ == "__main__":
-    class DummyConfig(object):
-        """Dummy configuration for testing."""
-
-        def run_in_background(self, function):
-            """Dummy method, does not run in background."""
-
-            function()
-
-    import sys
-    serve(endpoint=sys.argv[1] if len(sys.argv) >
-          1 else '[::]:50051', config=DummyConfig())

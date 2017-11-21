@@ -100,6 +100,15 @@ class MockServerConfig(AbstractServiceConfig):
     def __init__(self, *args, **kwargs):
         super(MockServerConfig, self).__init__(*args, **kwargs)
 
+    def get_grpc_wrapper(self):
+        """Get the database engine.
+
+        Raises:
+            NotImplementedError: Abstract.
+        """
+
+        raise NotImplementedError()
+
     def get_engine(self):
         """Get the database engine."""
 

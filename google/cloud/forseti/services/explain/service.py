@@ -199,5 +199,8 @@ class GrpcExplainerFactory(object):
         """Create and register the IAM Explain service."""
 
         service = GrpcExplainer(explainer_api=explainer.Explainer(self.config))
+        wrapper = self.config.get_grpc_wrapper()
+        if wrapper is not None:
+            service = wrapper(service)
         explain_pb2_grpc.add_ExplainServicer_to_server(service, server)
         return service

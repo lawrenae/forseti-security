@@ -21,6 +21,7 @@ from google.cloud.forseti.services.playground.service import GrpcPlaygrounderFac
 from google.cloud.forseti.services.inventory.service import GrpcInventoryFactory
 from google.cloud.forseti.services.model.service import GrpcModellerFactory
 from google.cloud.forseti.services.dao import ModelManager
+from google.cloud.forseti.services.trace import GrpcWrapper
 
 from tests.iam.api_tests.api_tester import ApiTestRunner
 from tests.iam.utils.db import create_test_engine, cleanup
@@ -34,6 +35,10 @@ class TestServiceConfig(MockServerConfig):
         # TODO: Enable FK constraint enforcement and fix test
         self.engine = create_test_engine(enforce_fks=False)
         self.model_manager = ModelManager(self.engine)
+
+    def get_grpc_wrapper(self):
+        """Stub."""
+        return GrpcWrapper
 
     def run_in_background(self, function):
         """Stub."""

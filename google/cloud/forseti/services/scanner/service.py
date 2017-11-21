@@ -69,5 +69,8 @@ class GrpcScannerFactory(object):
         """Create and register the IAM Scanner service."""
 
         service = GrpcScanner(scanner_api=scanner.Scanner(self.config))
+        wrapper = self.config.get_grpc_wrapper()
+        if wrapper is not None:
+            service = wrapper(service)
         scanner_pb2_grpc.add_ScannerServicer_to_server(service, server)
         return service

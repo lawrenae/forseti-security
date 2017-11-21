@@ -150,5 +150,8 @@ class GrpcInventoryFactory(object):
         service = GrpcInventory(
             inventory_api=inventory.Inventory(
                 self.config))
+        wrapper = self.config.get_grpc_wrapper()
+        if wrapper is not None:
+            service = wrapper(service)
         inventory_pb2_grpc.add_InventoryServicer_to_server(service, server)
         return service

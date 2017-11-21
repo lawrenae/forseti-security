@@ -32,6 +32,7 @@ from google.cloud.forseti.services.inventory.service import GrpcInventoryFactory
 from google.cloud.forseti.services.scanner.service import GrpcScannerFactory
 from google.cloud.forseti.services.model.service import GrpcModellerFactory
 from google.cloud.forseti.services.inventory.storage import Storage
+from google.cloud.forseti.services.trace import GrpcWrapper
 
 
 # TODO: The next editor must remove this disable and correct issues.
@@ -52,6 +53,16 @@ class AbstractServiceConfig(object):
     is used to implement dependency injection for the gRPC services."""
 
     __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def get_grpc_wrapper(self):
+        """Get the grpc wrapper.
+
+        Raises:
+            NotImplementedError: Abstract.
+        """
+
+        raise NotImplementedError()
 
     @abstractmethod
     def get_engine(self):
@@ -246,9 +257,19 @@ class ServiceConfig(AbstractServiceConfig):
         self.forseti_connect_string = forseti_connect_string
         self.sessionmaker = db.create_scoped_sessionmaker(self.engine)
         self.endpoint = endpoint
+        self.grpc_wrapper = GrpcWrapper
 
         self.inventory_config = inventory_config
         self.inventory_config.set_service_config(self)
+
+    def get_grpc_wrapper(self):
+        """Get the gRPC wrapper.
+
+        Returns:
+            object: gRPC wrapper
+        """
+
+        return self.grpc_wrapper
 
     def get_inventory_config(self):
         """Get the inventory config.

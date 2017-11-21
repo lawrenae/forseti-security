@@ -94,5 +94,8 @@ class GrpcModellerFactory(object):
         """Create and register the IAM Explain service."""
 
         service = GrpcModeller(modeller_api=modeller.Modeller(self.config))
+        wrapper = self.config.get_grpc_wrapper()
+        if wrapper is not None:
+            service = wrapper(service)
         model_pb2_grpc.add_ModellerServicer_to_server(service, server)
         return service
