@@ -24,6 +24,7 @@ services:
 
 before_install:
   # Update docker.
+  - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - sudo apt-get update
@@ -35,7 +36,7 @@ before_install:
   # Required for codecov.io to export coverage within a Docker container.
   - "CI_ENV=`bash <(curl -s https://codecov.io/env)`"
   # Start the container for testing and code verification.
-  - docker run --rm $CI_ENV -it -d --name build forseti/build /bin/bash
+  - docker run $CI_ENV -it -d --name build forseti/build /bin/bash
 
 script:
   # Run code coverage.
