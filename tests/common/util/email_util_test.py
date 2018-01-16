@@ -19,12 +19,14 @@ import unittest
 
 from sendgrid.helpers import mail
 
+from email.mime.application import MIMEApplication
+
 from tests.unittest_utils import ForsetiTestCase
-from google.cloud.security.common.util import email_util
+from google.cloud.security.common.util.email_util import EmailUtil
 from google.cloud.security.common.util import errors as util_errors
 
 
-class EmailUtilTest(ForsetiTestCase):
+class SendGridEmailUtilTest(ForsetiTestCase):
     """Tests for the Email utility."""
 
     def test_can_send_email_to_single_recipient(self):
@@ -32,7 +34,7 @@ class EmailUtilTest(ForsetiTestCase):
 
         email = mail.Mail()
         email_recipient='foo@company.com'
-        util = email_util.EmailUtil('fake_sendgrid_key')
+        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
         email = util._add_recipients(email, email_recipient)
 
         self.assertEquals(1, len(email.personalizations))
@@ -47,7 +49,7 @@ class EmailUtilTest(ForsetiTestCase):
 
         email = mail.Mail()
         email_recipient='foo@company.com,bar@company.com'
-        util = email_util.EmailUtil('fake_sendgrid_key')
+        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
         email = util._add_recipients(email, email_recipient)
 
         self.assertEquals(1, len(email.personalizations))
@@ -60,10 +62,71 @@ class EmailUtilTest(ForsetiTestCase):
     @mock.patch('sendgrid.helpers.mail.Mail', autospec=True)
     def test_no_sender_recip_no_email(self, mock_mail):
         """Test that no sender/recip doesn't send email."""
-        util = email_util.EmailUtil('fake_sendgrid_key')
+        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
         with self.assertRaises(util_errors.EmailSendError):
             util.send()
 
+
+class SmtpEmailUtilTest(ForsetiTestCase):
+    """Tests for the SMTP Email utility."""
+
+    def test_can_send_email_to_single_recipient(self):
+        """Test can send email to single recipient."""
+
+        email = mail.Mail()
+        email_recipient='foo@company.com'
+        util = EmailUtil._from_config({
+            'smtp_host':'host',
+            'smtp_port': 1234
+        })
+        email = util._add_recipients(email, email_recipient)
+
+        self.assertEquals(1, len(email.personalizations))
+
+        added_recipients = email.personalizations[0].tos
+        self.assertEquals(1, len(added_recipients))
+        self.assertEquals('foo@company.com', added_recipients[0].get('email'))
+
+
+    def test_can_send_email_to_multiple_recipients(self):
+        """Test can send email to multiple recipients."""
+
+        email = mail.Mail()
+        email_recipient='foo@company.com,bar@company.com'
+
+        util = EmailUtil._from_config({
+            'smtp_host':'host',
+            'smtp_port': 1234
+        })
+        email = util._add_recipients(email, email_recipient)
+
+        self.assertEquals(1, len(email.personalizations))
+
+        added_recipients = email.personalizations[0].tos
+        self.assertEquals(2, len(added_recipients))
+        self.assertEquals('foo@company.com', added_recipients[0].get('email'))
+        self.assertEquals('bar@company.com', added_recipients[1].get('email'))
+
+    def test_no_sender_recip_no_email(self):
+        """Test that no sender/recip doesn't send email."""
+        util = EmailUtil._from_config({
+            'smtp_host':'host',
+            'smtp_port': 1234
+        })
+        with self.assertRaises(util_errors.EmailSendError):
+            util.send()
+
+    def test_can_talk_to_smtp(self):
+        """make sure we can actually talk smtp successfully"""
+
+        util = EmailUtil._from_config({
+            'smtp_host':'smtp.kroger.com',
+        })
+        email = mail.Mail()
+        email_recipient='foo@company.com'
+        email = util._add_recipients(email, email_recipient)
+
+        util.send("bob@kroger.com", "andrew.lawrence@kroger.com", "test from forseti", "Hi There, this worked")
 
 if __name__ == '__main__':
     unittest.main()

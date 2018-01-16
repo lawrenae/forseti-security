@@ -64,6 +64,8 @@ except flags.DuplicateFlagError:
 LOGGER = log_util.get_logger(__name__)
 OUTPUT_TIMESTAMP_FMT = '%Y%m%dT%H%M%SZ'
 
+global_configs = {}
+
 def find_pipelines(pipeline_name):
     """Get the first class in the given sub module
 
@@ -124,8 +126,7 @@ def process(message):
     payload = message.get('payload')
 
     if message.get('status') == 'inventory_done':
-        inv_email_pipeline = inv_summary.EmailInventorySnapshotSummaryPipeline(
-            payload.get('sendgrid_api_key'))
+        inv_email_pipeline = inv_summary.EmailInventorySnapshotSummaryPipeline(global_configs)
         inv_email_pipeline.run(
             payload.get('cycle_time'),
             payload.get('cycle_timestamp'),
@@ -137,8 +138,7 @@ def process(message):
         return
 
     if message.get('status') == 'scanner_done':
-        scanner_email_pipeline = scanner_summary.EmailScannerSummaryPipeline(
-            payload.get('sendgrid_api_key'))
+        scanner_email_pipeline = scanner_summary.EmailScannerSummaryPipeline(global_configs)
         scanner_email_pipeline.run(
             payload.get('output_csv_name'),
             payload.get('output_filename'),
@@ -157,6 +157,7 @@ def main(_):
         Args:
             _ (obj): Result of the last expression evaluated in the interpreter.
     """
+    global global_configs
     notifier_flags = FLAGS.FlagValuesDict()
 
     forseti_config = notifier_flags.get('forseti_config')

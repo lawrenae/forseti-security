@@ -30,13 +30,13 @@ class EmailScannerSummaryPipeline(bnp.BaseEmailNotificationPipeline):
     """Email pipeline for scanner summary."""
 
     # TODO: See if the base pipline init() can be reused.
-    def __init__(self, sendgrid_key):  # pylint: disable=super-init-not-called
+    def __init__(self, config):  # pylint: disable=super-init-not-called
         """Initialize.
 
         Args:
             sendgrid_key (str): The SendGrid API key.
         """
-        self.email_util = EmailUtil(sendgrid_key)
+        self.email_util = EmailUtil._from_config(config)
 
     def _compose(  # pylint: disable=arguments-differ
             self, all_violations, total_resources):
@@ -129,7 +129,7 @@ class EmailScannerSummaryPipeline(bnp.BaseEmailNotificationPipeline):
         """
         # Render the email template with values.
         scan_date = now_utc.strftime('%Y %b %d, %H:%M:%S (UTC)')
-        email_content = EmailUtil.render_from_template(
+        email_content = self.email_util.render_from_template(
             'scanner_summary.jinja', {
                 'scan_date':  scan_date,
                 'resource_summaries': resource_summaries,
@@ -138,7 +138,7 @@ class EmailScannerSummaryPipeline(bnp.BaseEmailNotificationPipeline):
 
         # Create an attachment out of the csv file and base64 encode the
         # content.
-        attachment = EmailUtil.create_attachment(
+        attachment = self.email_util.create_attachment(
             file_location=csv_name,
             content_type='text/csv',
             filename=output_filename,

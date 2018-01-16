@@ -31,13 +31,13 @@ class EmailInventorySnapshotSummaryPipeline(bnp.BaseEmailNotificationPipeline):
     """Email pipeline for inventory snapshot summary."""
 
     # TODO: See if the base pipline init() can be reused.
-    def __init__(self, sendgrid_key):  # pylint: disable=super-init-not-called
+    def __init__(self, config):  # pylint: disable=super-init-not-called
         """Initialization.
 
         Args:
-            sendgrid_key (str): The SendGrid API key.
+            config (str): the application config
         """
-        self.email_util = EmailUtil(sendgrid_key)
+        self.email_util = EmailUtil._from_config(config)
 
     def _compose(
             self, snapshot_time, snapshot_timestamp, status,
@@ -59,7 +59,7 @@ class EmailInventorySnapshotSummaryPipeline(bnp.BaseEmailNotificationPipeline):
         email_subject = 'Inventory Snapshot Complete: {0} {1}'.format(
             snapshot_timestamp, status)
 
-        email_content = EmailUtil.render_from_template(
+        email_content = self.email_util.render_from_template(
             'inventory_snapshot_summary.jinja',
             {'snapshot_time':
                  snapshot_time.strftime('%Y %b %d, %H:%M:%S (UTC)'),

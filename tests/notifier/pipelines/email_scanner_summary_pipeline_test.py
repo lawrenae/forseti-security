@@ -32,8 +32,7 @@ class EmailScannerSummaryPipelineTest(ForsetiTestCase):
     def test_can_compose_scanner_summary(self, mock_rules_engine):
         """Test that the scan summary is built correctly."""
         email_pipeline = (
-            email_scanner_summary_pipeline.EmailScannerSummaryPipeline(
-                111111))
+            email_scanner_summary_pipeline.EmailScannerSummaryPipeline( { 'sendgrid_api_key': '111111' }))
 
         members = [iam_policy.IamPolicyMember.create_from(u)
             for u in ['user:a@b.c', 'group:g@h.i', 'serviceAccount:x@y.z']

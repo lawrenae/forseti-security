@@ -28,8 +28,7 @@ class EmailInventorySnapshotSummaryPipelineTest(ForsetiTestCase):
     def test_can_compose_subject_and_content(self):
         email_pipeline = (
             email_inventory_snapshot_summary_pipeline
-            .EmailInventorySnapshotSummaryPipeline(
-                111111))
+            .EmailInventorySnapshotSummaryPipeline( {'sendgrid_api_key': '111111'} ))
 
         snapshot_time = datetime.strptime('Dec 25 2000  1:00AM',
                                           '%b %d %Y %I:%M%p')

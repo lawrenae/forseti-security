@@ -337,9 +337,6 @@ def main(_):
 
     if global_configs.get('email_recipient') is not None:
         payload = {
-            'email_sender': global_configs.get('email_sender'),
-            'email_recipient': global_configs.get('email_recipient'),
-            'sendgrid_api_key': global_configs.get('sendgrid_api_key'),
             'cycle_time': cycle_time,
             'cycle_timestamp': cycle_timestamp,
             'snapshot_cycle_status': snapshot_cycle_status,
