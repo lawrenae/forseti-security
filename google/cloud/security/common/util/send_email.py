@@ -1,19 +1,21 @@
+""" Classes implementing sending an email
+"""
+
 import base64
-import jinja2
 import os
 import urllib2
 
-
-import sendgrid
-
-from sendgrid.helpers import mail
-from retrying import retry
-
-from email.mime.text import MIMEText
+from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
+from email import encoders
 from mimetypes import guess_type
-from email.encoders import encode_base64
 from smtplib import SMTP
+from sendgrid.helpers import mail
+import sendgrid
+import jinja2
+from retrying import retry
 
 from google.cloud.security.common.util import errors as util_errors
 from google.cloud.security.common.util import log_util
@@ -22,6 +24,8 @@ from google.cloud.security.common.util import retryable_exceptions
 LOGGER = log_util.get_logger(__name__)
 
 class Email(object):
+    """ Base Email Class that is extended below
+    """
     def __init__(self):
         raise NotImplementedError("Don't instantiate this class")
 
@@ -37,10 +41,9 @@ class Email(object):
         Args:
             email (SendGrid): SendGrid mail object
 
-        Returns:
-            dict: urllib2 response object
+        Raises:
+            NotImplementedError: as this is meant as an "abstract" class
         """
-
         raise NotImplementedError("Not Implemented Yet")
 
     @staticmethod
@@ -51,8 +54,8 @@ class Email(object):
             email (SendGrid): SendGrid mail object
             email_recipients (Str): comma-separated text of the email recipients
 
-        Returns:
-            SendGrid: SendGrid mail object with mulitiple recipients.
+        Raises:
+            NotImplementedError: as this is meant as an "abstract" class
         """
         raise NotImplementedError("Not Implemented Yet")
 
@@ -76,11 +79,12 @@ class Email(object):
             attachment (Attachment): A SendGrid Attachment.
 
         Raises:
-            EmailSendError: An error with sending email has occurred.
+            NotImplementedError: as this is meant as an "abstract" class
         """
         raise NotImplementedError("Not Implemented Yet")
 
-    def render_from_template(cls, template_file, template_vars):
+    @staticmethod
+    def render_from_template(template_file, template_vars):
         """Fill out an email template with template variables.
 
         Args:
@@ -114,8 +118,8 @@ class Email(object):
             disposition (str): Content disposition, defaults to "attachment".
             content_id (str): The content id.
 
-        Returns:
-            Attachment: A SendGrid Attachment.
+        Raises:
+            NotImplementedError: as this is meant as an "abstract" class
         """
         raise NotImplementedError("Not Implemented Yet")
 
@@ -123,6 +127,7 @@ class Email(object):
 # SMTP Email Implementation
 # --------------------------
 class SMTPEmail(Email):
+    """SMTP Implementation of Email"""
     def __init__(self, smtp_host, smtp_port, smtp_username, smtp_password):
         """Initialize the email util.
 
@@ -132,7 +137,7 @@ class SMTPEmail(Email):
             smtp_username (str): The username of the smtp server
             smtp_password (str): The password of the smtp server
         """
-        self.sendgrid = None
+        super(SMTPEmail, self).__init__()
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
         self.smtp_username = smtp_username
@@ -162,7 +167,12 @@ class SMTPEmail(Email):
         if self.smtp_username:
             connection.login(self.smtp_username, self.smtp_password)
 
-        response = connection.sendmail(email['From'], email['To'], email.as_string())
+        response = connection.sendmail(
+            email['From'],
+            email['To'],
+            email.as_string()
+        )
+
         connection.quit()
 
         return response
@@ -223,7 +233,7 @@ class SMTPEmail(Email):
 
 
         if attachment:
-            email.add_attachment(attachment)
+            email.attach(attachment)
 
         try:
             response = self._execute_send(email)
@@ -236,8 +246,9 @@ class SMTPEmail(Email):
             LOGGER.info('Email accepted for delivery:\n%s',
                         email_subject)
         else:
-            for key in response.keys:
-                LOGGER.error('Unable to send email:\n%s\n%s', email_subject, key)
+            for resp in response:
+                LOGGER.error('Unable to send email:\n%s\n%s',
+                             email_subject, resp)
             raise util_errors.EmailSendError
 
 
@@ -245,43 +256,59 @@ class SMTPEmail(Email):
     def create_attachment(cls, file_location, content_type, filename,
                           disposition='attachment', content_id=None):
         """Create a SendGrid attachment.
-    
+
         SendGrid attachments file content must be base64 encoded.
-    
+
         Args:
             file_location (str): The path of the file.
             content_type (str): The content type of the attachment.
             filename (str): The filename of attachment.
             disposition (str): Content disposition, defaults to "attachment".
             content_id (str): The content id.
-    
+
         Returns:
             Attachment: A SendGrid Attachment.
         """
-        file_content = ''
-        with open(file_location, 'rb') as f:
-            file_content = f.read()
-        content = base64.b64encode(file_content)
-    
-        attachment = mail.Attachment()
-        attachment.set_content(content)
-        attachment.set_type(content_type)
-        attachment.set_filename(filename)
-        attachment.set_disposition(disposition)
-        attachment.set_content_id(content_id)
-    
-        return attachment
+        # straight out of https://docs.python.org/2/library/email-examples.html
+        ctype, encoding = guess_type(file_location)
+
+        if ctype is None or encoding is not None:
+            # No guess could be made, or the file is encoded (compressed), so
+            # use a generic bag-of-bits type.
+            ctype = 'application/octet-stream'
+        maintype, subtype = ctype.split('/', 1)
+        attachment_file = open(file_location)
+        if maintype == 'text':
+            # Note: we should handle calculating the charset
+            msg = MIMEText(attachment_file.read(), _subtype=subtype)
+        elif maintype == 'image':
+            msg = MIMEImage(attachment_file.read(), _subtype=subtype)
+        elif maintype == 'audio':
+            msg = MIMEAudio(attachment_file.read(), _subtype=subtype)
+        else:
+            msg = MIMEBase(maintype, subtype)
+            msg.set_payload(attachment_file.read())
+            # Encode the payload using Base64
+            encoders.encode_base64(msg)
+
+        attachment_file.close()
+        # Set the filename parameter
+        msg.add_header('Content-Disposition', 'attachment', filename=filename)
+
+        return msg
 
 
 # Sendgrid Email
 # ---------------------------------------
 class SendGridEmail(Email):
+    """SendGrid Implementation of Email"""
     def __init__(self, api_key):
         """Initialize the email util.
 
         Args:
             api_key (str): The SendGrid api key to auth email service.
         """
+        super(SendGridEmail, self).__init__()
         self.sendgrid = sendgrid.SendGridAPIClient(apikey=api_key)
 
 
@@ -301,8 +328,9 @@ class SendGridEmail(Email):
             dict: urllib2 response object
         """
 
-        if (self.sendgrid):
-            result = self.sendgrid.client.mail.send.post(request_body=email.get())
+        if self.sendgrid:
+            result = self.sendgrid.client.mail.send.post(
+                request_body=email.get())
         else:
             result = "NOT IMPLEMENTED"
 
@@ -386,16 +414,16 @@ class SendGridEmail(Email):
     def create_attachment(cls, file_location, content_type, filename,
                           disposition='attachment', content_id=None):
         """Create a SendGrid attachment.
-    
+
         SendGrid attachments file content must be base64 encoded.
-    
+
         Args:
             file_location (str): The path of the file.
             content_type (str): The content type of the attachment.
             filename (str): The filename of attachment.
             disposition (str): Content disposition, defaults to "attachment".
             content_id (str): The content id.
-    
+
         Returns:
             Attachment: A SendGrid Attachment.
         """
@@ -403,12 +431,12 @@ class SendGridEmail(Email):
         with open(file_location, 'rb') as f:
             file_content = f.read()
         content = base64.b64encode(file_content)
-    
+
         attachment = mail.Attachment()
         attachment.set_content(content)
         attachment.set_type(content_type)
         attachment.set_filename(filename)
         attachment.set_disposition(disposition)
         attachment.set_content_id(content_id)
-    
+
         return attachment

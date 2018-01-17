@@ -37,7 +37,7 @@ class EmailInventorySnapshotSummaryPipeline(bnp.BaseEmailNotificationPipeline):
         Args:
             config (str): the application config
         """
-        self.email_util = EmailUtil._from_config(config)
+        self.email_util = EmailUtil.from_config(config)
 
     def _compose(
             self, snapshot_time, snapshot_timestamp, status,

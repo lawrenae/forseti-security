@@ -56,7 +56,7 @@ from google.cloud.security.inventory import api_map
 from google.cloud.security.inventory import errors as inventory_errors
 from google.cloud.security.inventory import pipeline_builder as builder
 from google.cloud.security.inventory import util as inventory_util
-from google.cloud.security.notifier import notifier
+from google.cloud.security.notifier.notifier import Notifier
 # pylint: enable=line-too-long
 
 
@@ -346,7 +346,7 @@ def main(_):
             'status': 'inventory_done',
             'payload': payload
         }
-        notifier.process(message)
+        Notifier(global_configs).process(message)
 
 
 if __name__ == '__main__':

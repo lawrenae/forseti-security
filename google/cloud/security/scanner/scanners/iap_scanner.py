@@ -31,7 +31,7 @@ from google.cloud.security.common.gcp_type import instance as instance_type
 from google.cloud.security.common.gcp_type import instance_template as instance_template_type
 from google.cloud.security.common.gcp_type import network as network_type
 from google.cloud.security.common.gcp_type.resource import ResourceType
-from google.cloud.security.notifier import notifier
+from google.cloud.security.notifier.notifier import Notifier
 from google.cloud.security.scanner.audit import iap_rules_engine
 from google.cloud.security.scanner.scanners import base_scanner
 # pylint: enable=line-too-long
@@ -472,7 +472,7 @@ class IapScanner(base_scanner.BaseScanner):
                         'status': 'scanner_done',
                         'payload': payload
                     }
-                    notifier.process(message)
+                    Notifier(self.global_configs).process(message)
 
     def _get_backend_services(self):
         """Retrieves backend services.

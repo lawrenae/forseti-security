@@ -27,18 +27,24 @@ class EmailUtil(object):
     """Utility for sending emails."""
 
     @staticmethod
-    def _from_config(pipeline_config):
+    def from_config(pipeline_config):
+        """Factory Method to return the right Email sending instance
+
+           Args:
+               pipeline_config (dict): The application config object
+
+           Returns:
+               Email: The correct instance of Email (SendGrid or SMTP)
+        """
         if 'sendgrid_api_key' in pipeline_config:
             return SendGridEmail(pipeline_config['sendgrid_api_key'])
-        else:
-            return SMTPEmail(
-                pipeline_config.get('smtp_host'),
-                pipeline_config.get('smtp_port', "25"),
-                pipeline_config.get('smtp_username', None),
-                pipeline_config.get('smtp_password', None)
-            )
+
+        return SMTPEmail(
+            pipeline_config.get('smtp_host'),
+            pipeline_config.get('smtp_port', "25"),
+            pipeline_config.get('smtp_username', None),
+            pipeline_config.get('smtp_password', None)
+        )
 
     def __init__(self):
         raise NotImplementedError("Don't instantiate this class")
-
-

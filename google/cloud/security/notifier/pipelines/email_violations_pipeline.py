@@ -55,7 +55,7 @@ class EmailViolationsPipeline(bnp.BaseNotificationPipeline):
                                                       global_configs,
                                                       notifier_config,
                                                       pipeline_config)
-        self.mail_util = EmailUtil._from_config(self.pipeline_config)
+        self.mail_util = EmailUtil.from_config(self.pipeline_config)
 
     def _get_output_filename(self):
         """Create the output filename.

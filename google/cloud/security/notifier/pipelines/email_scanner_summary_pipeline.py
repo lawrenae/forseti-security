@@ -34,9 +34,9 @@ class EmailScannerSummaryPipeline(bnp.BaseEmailNotificationPipeline):
         """Initialize.
 
         Args:
-            sendgrid_key (str): The SendGrid API key.
+            config (dict): The application config
         """
-        self.email_util = EmailUtil._from_config(config)
+        self.email_util = EmailUtil.from_config(config)
 
     def _compose(  # pylint: disable=arguments-differ
             self, all_violations, total_resources):

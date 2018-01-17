@@ -34,7 +34,7 @@ class SendGridEmailUtilTest(ForsetiTestCase):
 
         email = mail.Mail()
         email_recipient='foo@company.com'
-        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
+        util = EmailUtil.from_config({'sendgrid_api_key': 'fake_sendgrid_key'})
         email = util._add_recipients(email, email_recipient)
 
         self.assertEquals(1, len(email.personalizations))
@@ -49,7 +49,7 @@ class SendGridEmailUtilTest(ForsetiTestCase):
 
         email = mail.Mail()
         email_recipient='foo@company.com,bar@company.com'
-        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
+        util = EmailUtil.from_config({'sendgrid_api_key': 'fake_sendgrid_key'})
         email = util._add_recipients(email, email_recipient)
 
         self.assertEquals(1, len(email.personalizations))
@@ -62,7 +62,7 @@ class SendGridEmailUtilTest(ForsetiTestCase):
     @mock.patch('sendgrid.helpers.mail.Mail', autospec=True)
     def test_no_sender_recip_no_email(self, mock_mail):
         """Test that no sender/recip doesn't send email."""
-        util = EmailUtil._from_config({'sendgrid_api_key':'fake_sendgrid_key'})
+        util = EmailUtil.from_config({'sendgrid_api_key': 'fake_sendgrid_key'})
         with self.assertRaises(util_errors.EmailSendError):
             util.send()
 
@@ -75,7 +75,7 @@ class SmtpEmailUtilTest(ForsetiTestCase):
 
         email = mail.Mail()
         email_recipient='foo@company.com'
-        util = EmailUtil._from_config({
+        util = EmailUtil.from_config({
             'smtp_host':'host',
             'smtp_port': 1234
         })
@@ -94,7 +94,7 @@ class SmtpEmailUtilTest(ForsetiTestCase):
         email = mail.Mail()
         email_recipient='foo@company.com,bar@company.com'
 
-        util = EmailUtil._from_config({
+        util = EmailUtil.from_config({
             'smtp_host':'host',
             'smtp_port': 1234
         })
@@ -109,7 +109,7 @@ class SmtpEmailUtilTest(ForsetiTestCase):
 
     def test_no_sender_recip_no_email(self):
         """Test that no sender/recip doesn't send email."""
-        util = EmailUtil._from_config({
+        util = EmailUtil.from_config({
             'smtp_host':'host',
             'smtp_port': 1234
         })
@@ -119,7 +119,7 @@ class SmtpEmailUtilTest(ForsetiTestCase):
     def test_can_talk_to_smtp(self):
         """make sure we can actually talk smtp successfully"""
 
-        util = EmailUtil._from_config({
+        util = EmailUtil.from_config({
             'smtp_host':'smtp.kroger.com',
         })
         email = mail.Mail()

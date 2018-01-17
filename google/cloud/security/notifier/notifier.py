@@ -64,7 +64,65 @@ except flags.DuplicateFlagError:
 LOGGER = log_util.get_logger(__name__)
 OUTPUT_TIMESTAMP_FMT = '%Y%m%dT%H%M%SZ'
 
-global_configs = {}
+
+class Notifier(object):
+    """Process Notifications"""
+
+    def __init__(self, global_config):
+        """Need to know the application configuration
+
+        Args:
+            global_config (dict): the application configuration
+
+        """
+        self.global_config = global_config
+
+
+    def process(self, message):
+        """Process messages about what notifications to send.
+
+        Args:
+            message (dict): Message with payload in dict.
+                The payload will be different depending on the sender
+                of the message.
+
+                Example:
+                    {'status': 'foobar_done',
+                     'payload': {}}
+        """
+        payload = message.get('payload')
+
+        if message.get('status') == 'inventory_done':
+            inv_email_pipeline = \
+                inv_summary.EmailInventorySnapshotSummaryPipeline(
+                    self.global_config)
+
+            inv_email_pipeline.run(
+                payload.get('cycle_time'),
+                payload.get('cycle_timestamp'),
+                payload.get('snapshot_cycle_status'),
+                payload.get('pipelines'),
+                payload.get('email_sender'),
+                payload.get('email_recipient')
+            )
+            return
+
+        if message.get('status') == 'scanner_done':
+            scanner_email_pipeline = \
+                scanner_summary.EmailScannerSummaryPipeline(self.global_config)
+
+            scanner_email_pipeline.run(
+                payload.get('output_csv_name'),
+                payload.get('output_filename'),
+                payload.get('now_utc'),
+                payload.get('all_violations'),
+                payload.get('resource_counts'),
+                payload.get('violation_errors'),
+                payload.get('email_sender'),
+                payload.get('email_recipient'),
+                payload.get('email_description'))
+            return
+
 
 def find_pipelines(pipeline_name):
     """Get the first class in the given sub module
@@ -91,6 +149,7 @@ def find_pipelines(pipeline_name):
 
     return None
 
+
 def _get_timestamp(global_configs, statuses=('SUCCESS', 'PARTIAL_SUCCESS')):
     """Get latest snapshot timestamp.
 
@@ -111,45 +170,6 @@ def _get_timestamp(global_configs, statuses=('SUCCESS', 'PARTIAL_SUCCESS')):
 
     return latest_timestamp
 
-def process(message):
-    """Process messages about what notifications to send.
-
-    Args:
-        message (dict): Message with payload in dict.
-            The payload will be different depending on the sender
-            of the message.
-
-            Example:
-                {'status': 'foobar_done',
-                 'payload': {}}
-    """
-    payload = message.get('payload')
-
-    if message.get('status') == 'inventory_done':
-        inv_email_pipeline = inv_summary.EmailInventorySnapshotSummaryPipeline(global_configs)
-        inv_email_pipeline.run(
-            payload.get('cycle_time'),
-            payload.get('cycle_timestamp'),
-            payload.get('snapshot_cycle_status'),
-            payload.get('pipelines'),
-            payload.get('email_sender'),
-            payload.get('email_recipient')
-        )
-        return
-
-    if message.get('status') == 'scanner_done':
-        scanner_email_pipeline = scanner_summary.EmailScannerSummaryPipeline(global_configs)
-        scanner_email_pipeline.run(
-            payload.get('output_csv_name'),
-            payload.get('output_filename'),
-            payload.get('now_utc'),
-            payload.get('all_violations'),
-            payload.get('resource_counts'),
-            payload.get('violation_errors'),
-            payload.get('email_sender'),
-            payload.get('email_recipient'),
-            payload.get('email_description'))
-        return
 
 def main(_):
     """Main function.
@@ -157,7 +177,6 @@ def main(_):
         Args:
             _ (obj): Result of the last expression evaluated in the interpreter.
     """
-    global global_configs
     notifier_flags = FLAGS.FlagValuesDict()
 
     forseti_config = notifier_flags.get('forseti_config')

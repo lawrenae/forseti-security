@@ -26,7 +26,7 @@ from google.cloud.security.common.data_access import organization_dao
 from google.cloud.security.common.data_access import project_dao
 from google.cloud.security.common.gcp_type.resource import ResourceType
 from google.cloud.security.common.util import log_util
-from google.cloud.security.notifier import notifier
+from google.cloud.security.notifier.notifier import Notifier
 from google.cloud.security.scanner.audit import iam_rules_engine
 from google.cloud.security.scanner.scanners import base_scanner
 
@@ -143,7 +143,7 @@ class IamPolicyScanner(base_scanner.BaseScanner):
                         'status': 'scanner_done',
                         'payload': payload
                     }
-                    notifier.process(message)
+                    Notifier(self.global_configs).process(message)
 
     def _find_violations(self, policies):
         """Find violations in the policies.
